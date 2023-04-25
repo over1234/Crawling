@@ -7,7 +7,7 @@ var lastPage = 0
 var cnt = 1
 let courses = []
 
-const getHTML = async(keyword, page) => {
+const getInflean = async(keyword, page) => {
   try {
     return await axios.get(`https://www.inflearn.com/courses?s=${encodeURI(keyword)}&page=${page}`)
   } catch (e) {
@@ -15,8 +15,16 @@ const getHTML = async(keyword, page) => {
   }
 }
 
-const parsing = async(keyword, page) => {
-  const html = await getHTML(keyword, cnt)
+const getFastcampus = async (keyword, page) => {
+  try {
+    return await axios.get(`https://fastcampus.co.kr/search?keyword=${encodeURI(keyword)}`)
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+const parsingI = async(keyword, page) => {
+  const html = await getInflean(keyword, cnt)
   const $ = cheerio.load(html.data)
   const $courseList = $(".course_card_item")
   const $paginationList = $(".pagination_container")
@@ -30,10 +38,10 @@ const parsing = async(keyword, page) => {
   page = pageList[0].page
   lastPage = page[page.length - 2] + page[page.length - 1]
   if(Number(lastPage) + 1 == cnt) {
-    fs.writeFile(`inflearn-${keyword}.json`, JSON.stringify(courses), 'utf8', function (err) {
+    fs.writeFile(`${keyword}.json`, JSON.stringify(courses), 'utf8', function (err) {
       if (err) console.log(err.message)
     });
-    return console.log('모든 강의 자료를 들고 왔습니다!');
+    return console.log('done Inflean');
   }
   else {
     $courseList.each((i, elem) => {
@@ -51,10 +59,29 @@ const parsing = async(keyword, page) => {
       })
     })
     cnt++
-    console.log(courses)
-    console.log(Number(lastPage) + 1, cnt)
-    return parsing(keyword, cnt)
+    return parsingI(keyword, cnt)
   }
 }
 
-parsing("자바스크립트", 1)
+const parsingF = async (keyword) => {
+  const html = await getFastcampus(keyword)
+  const $ = cheerio.load(html.data)
+  const $cardList = $(".card__container")
+
+  $cardList.each((i, elem) => {
+    const title = $(elem).find(".card__text > strong").text()
+    console.log(title)
+    const content = $(elem).find(".card__text > p").text()
+    const img = $(elem).find(".card__image-wrapper > img").attr("src")
+    courses.push({
+      title: title,
+      content : content,
+      img: img
+    })
+  })
+  return console.log("done Fastcompus")
+}
+
+const keyword = "파이썬"
+// parsingI(keyword, 1)
+parsingF(keyword)
